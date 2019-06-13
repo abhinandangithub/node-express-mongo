@@ -1,18 +1,5 @@
-Code for [API Design in Node.js, v1](https://frontendmasters.com/courses/api-design-nodejs/)
+##Testing our app
 
-## Getting started
-* `npm i`
+We're going to use mocha and chai along with supertest to runt inegration test against our api. **Be sure to gloably install mocha**. `npm i -g mocha`. 
 
-## Todo
-
-create a basic server with express
-that will send back the index.html file on a GET request to '/'
-it should then send back jsonData on a GET to /data
-
-## Fetch all branches locally
-
-```
-git branch -r | grep -v '\->' | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
-git fetch --all
-git pull --all
-```
+To run the test, run `mocha server/spec.js` or `npm test`;
