@@ -1,18 +1,4 @@
-Code for [API Design in Node.js, v1](https://frontendmasters.com/courses/api-design-nodejs/)
-
-## Getting started
-* `npm i`
-
-## Todo
-
-create a basic server with express
-that will send back the index.html file on a GET request to '/'
-it should then send back jsonData on a GET to /data
-
-## Fetch all branches locally
-
-```
-git branch -r | grep -v '\->' | while read remote; do git branch --track "${remote#origin/}" "$remote"; done
-git fetch --all
-git pull --all
-```
+## TODO
+* `server/config/config.js` is incomplete. You must merge the config object in there with the appropriate file depending on what the `NODE_ENV` is. So for instance, if `NODE_ENV` is testing then we should merge config with `config/testing.js` object and then export that merged object in `config.js`;
+* `server/api/api.js` has setup mounted routes for our resources. Its expected a router to exist for each resource.
+* Use a HTTP client to test your api. You should be able to do a get request to all resource and get a success. Remeber to follow the mounted routes from `server/server.js` all the way to the resources' router to determine the route for the resource. We are three routers deep!!
