@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Node api design</title>
+    <link rel='stylesheet' type='text/css'
+        href='https://d33wubrfki0l68.cloudfront.net/bundles/8d9fbaf38ea830c474bc9315e711017a488e0f10.css' />
+
+    <script type='text/javascript'
+        src='https://d33wubrfki0l68.cloudfront.net/js/fd120aaa475804fd044cc29cec6d48e93a8c79fe/pretty.js'></script>
+</head>
+
+<body>
+    <main>
+        <div class="center">
+            <section id="intro">
+                <div class="header">
+                    <h3 class="title">Node Express Mongo By: <b>Abhinandan GP</b></h3>
+                </div>
+                <hr>
+                <div class="header">
+                    <h2 class="title">What we're doing</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        We'll be learning how to design, build, test, and deploy a restful API using node and mongo. You
+                        should have some experince with javascript and a little node experince wouldn't hurt either.
+                    </p>
+
+                    <p class="desc">
+                        By the end of the workshop you will have built and deployed an api for a blogging app with
+                        authentication.
+                    </p>
+                </div>
+            </section>
+            <section id="node">
+                <div class="header">
+                    <h2 class="title">Nodejs refresher</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        <span class="code">Nodejs</span> is basically a way to run javascript outside the context of the
+                        browser. Powered by V8. We can use node for many things now like tooling and servers. To get
+                        started, you can just type <span class="code">node</span> in your terminal and you'll have a
+                        full JS REPL. <strong>Note</strong> <i>that this is just javscript but its not in the context of
+                            thw browser, so most of the browser API does not exist on node.</i>
+                    </p>
+
+                    <p class="desc">
+                        Node uses <span class="code">NPM</span> as a package manager to handle dependencies. Using the
+                        <span class="code">package.json</span> to store meta info about your package and what packages
+                        it may need, NPM is the standard. All 3rd modules, when downloaded, will be placed in the <span
+                            class="code">node_modules</span> directory by default.
+                    </p>
+
+                    <p class="desc">
+                        Node uses <span class="code">CommonJs</span> for its module loader. Using <span
+                            class="code">require()</span> we can get access to built in and 3rd party npm modules.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">
+// built in node module
+var path = require('path');
+
+// 3rd party module downloaded into node_modules/
+var _ = require('lodash');
+
+// a module we created in another file
+var myModule = require('./path/to/my/module');
+
+          </code></pre>
+
+                    <p class="desc">
+                        Above are examples on how to access node modules using commonjs. Here are examples on exposing
+                        node modules so that we can access them.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">// config.js
+exports.setup = function() {};
+export.enable = function() {};
+export.ready = true;
+
+// otherfile.js
+module.exports = {
+  action: function(){},
+  trigger: true
+}
+          </code></pre>
+
+                    <p class="desc">
+                        Using the <span class="code">exports</span> object on <spane class="code">module</spane> we can
+                        expose our code to be required later. To execute node against a file we can run <span
+                            class="code">node path/to/file</span>.
+                    </p>
+                </div>
+            </section>
+
+            <section id="express">
+                <div class="header">
+                    <h2 class="title">Express</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        Node has a built in <span class="code">http</span> module that allows us to create a server. The
+                        problem is that configuration and the amount of code you have to write in order to have basic
+                        features is pretty overwhelming and at times and difficult. Error prone for sure. Express is a
+                        framework that sits on top of node and uses the http module to make building serves in node not
+                        so hard. There is still a bit of configuration with express, so if you're expexting something
+                        like rails, express is not it.
+                    </p>
+
+                    <p class="desc">
+                        Express has a welcoming api that makes getting off the ground and building an api pretty easy.
+                        Taking advantage of node's evented i.o., express allows us to regesiter callbacks when a
+                        particalular combination of http verbs and routes are hit. Express is just one of many server
+                        frameworks for node. We're using it because its the most commonly one used and its lack of
+                        strict conventions will force you to learn more about what is going on as we build the api.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var express = require('express');
+
+var app = express();
+
+// on GET request to the url
+app.get('/todos', function(req, res) {
+
+});
+
+// on POST request to the same url
+app.post('/todos', function(req, res) {
+
+});
+
+// start server on port 3000
+app.listen(3000);
+          </code></pre>
+
+                    <p class="desc">
+                        Above is an example of a basic http server using Express. The <span class="code">req</span> and
+                        <span class="code">res</span> objects in the callbacks to the routes have so much power. On the
+                        request, we have all tons of information about what is trying to access our server. The response
+                        gives us all types of ways to respond back to the client.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var todos = [];
+
+app.get('/todos', function(req, res) {
+  // send back a json response
+  res.json(todos);
+});
+
+app.post('/todos', function(req, res) {
+  var todo = req.body.todo;
+
+  todos.push(todos);
+  // res.send converts to json as well
+  // but req.json will convert things like null and undefined to json too although its not valid
+  res.send(todo);
+});
+
+// get the parameters from the route
+app.get('/todos/:id', function(req, res) {
+  var todo = _.find(todos, {id: req.params.id});
+
+  res.json(todo);
+});
+          </code></pre>
+
+                    <p class="desc">
+                        Express uses <span class="code">middleware</span> to modify and inspect the incoming request.
+                        There are tons of community made middleware that makes building with express super easy. From
+                        parsing urls to handing auth, middleware makes this easy. Express can also serve static assets
+                        and does so with ease compared to the manual setup we'd have to do with the http module.
+                    </p>
+                </div>
+            </section>
+
+            <section id="restful">
+                <div class="header">
+                    <h2 class="title">Getting RESTful</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        The modern web is mostly built around REST. the basics are that it should be stateless, use HTTP
+                        verbs explicitly, expose a directory like url pattern for routes, transfoer JSON and or XML.
+                        There are tons of tools out there to assist with the designing of your restful api. Generating
+                        documentaion and a mock server even. We'll be doing this process by hand because our api won't
+                        be huge.
+                    </p>
+
+                    <p class="desc">
+                        Lets create an api to consume some data about lions. First we should determine what the actual
+                        resource looks like. We can model this in <span class="code">json</span>.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-json linenums">{
+  "name": "Simba",
+  "id": 1,
+  "age": 3,
+  "pride": "the cool cats",
+  "gender": "male"
+}
+          </code></pre>
+
+                    <p class="desc">
+                        Next we should design the routes to access the resource. Following REST, we want to use the HTTP
+                        verbs <span class="code">(GET, POST, PUT, DELETE)</span> to perfom <span class="code">CREATE,
+                            READ, UPDATE, DELETE (CRUD)</span> operations on our resource. We'll diagram this with JSON
+                        as well.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-json">{
+  "GET /lions": {
+    "desc": "returns all lions",
+    "response": "200 application/json",
+    "data": [{}, {}, {}]
+  },
+
+  "GET /lions/:id": {
+    "desc": "returns one lion respresented by its id",
+    "response": "200 application/json",
+    "data": {}
+  },
+
+  "POST /lions": {
+    "desc": "create and returns a new lion uisng the posted object as the lion",
+    "response": "201 application/json",
+    "data": {}
+  },
+
+  "PUT /lions/:id": {
+    "desc": "updates and returns the matching lion with the posted update object",
+    "response": "200 application/json",
+    "data": {}
+  },
+
+  "DELETE /lions/:id": {
+    "desc": "deletes and returns the matching lion",
+    "response": "200 application/json",
+    "data": {}
+  }
+}
+        </code></pre>
+
+                    <p class="desc">
+                        Now that we have our resource and routes modeled out, we can start building the this api with
+                        express. For extra credit, allow query params on the GET requests that allow filtering and
+                        ordering of the lions.
+                    </p>
+                </div>
+            </section>
+
+            <section id="middleware">
+                <div class="header">
+                    <h2 class="title">Middleware</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        <a href="http://expressjs.com/guide/using-middleware.html">Middleware</a> is the backbone of
+                        Express. Express is really just a routing and middleware framework. Middleware is a function
+                        with access to the request object, the response object, and the <span class="code">next()</span>
+                        function that when called will go to the next middleware. Middleware can run any code, change
+                        the request and response objects, end the request-response cycle, and call the next middleware
+                        in the stack. If a middleware does not call <span class="code">next()</span> or end the cycle,
+                        then the server will just hang.
+                    </p>
+
+                    <p class="desc">
+                        There are 5 different types of middleware in Express 4.x.
+                    </p>
+
+                    <ul>
+                        <li>3rd party</li>
+                        <li>Router level</li>
+                        <li>Application level</li>
+                        <li>Error-handling</li>
+                        <li>Built-in</li>
+                    </ul>
+                </div>
+
+                <p class="desc">
+                    Which ever the type, using middleware is the same. They are bound to the application or the routes.
+                </p>
+
+                <pre class="prettyprint"><code class="span-js">var express = require('express');
+var app = express();
+
+// 3rd party middleware
+var morgan = require('morgan');
+
+// cutom middleware
+var checkAuth = require('./util/checkauth');
+
+// when ever a reqest comes in
+// it will run through this stack of middleware in the order
+// we register them
+// using the .use() method, we can setup application middleware
+app.use(morgan());
+
+// we can use middleware on a route as well
+// passing in as many middleware as we want
+// or an array of middleware
+// its the middleware's job to either call next()
+// or stop the request-response cycle
+app.get('/todos', checkAuth(), function(req, res) {
+  // auth is good if this runs
+});
+        </code></pre>
+
+                <p class="desc">
+                    We'll use 3rd party and built in middleware a lot. We'll also be creating our own middleware.
+                </p>
+
+                <pre class="prettyprint"><code class="lang-js">app.use(function(req, res, next){
+  // ... do what we want with the req & resp
+  if (req.data.secretWord === 'catnip') {
+    next();
+  } else {
+    res.status(401).send({message: 'Nope'});
+  }
+  // if you have an error, you can pass it to next() and
+  // have another middleware catch the error.
+});      </code></pre>
+            </section>
+
+            <section id="routers">
+                <div class="header">
+                    <h2 class="title">Routers</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        With the release of Express 4.x, we can now have more than one router in our application. Think
+                        of a router as module with its own routing and middleware stack and functionality. This is great
+                        and allows more fine grained control over our resources. Also great for versioning our apis.
+                        Routers can setup routing and middleware the exact same way as we talked about with the app. A
+                        router is a little different that the enteri app as previous examples. The entire app from <span
+                            class="code">express()</span> will still control global middleware and configuration and
+                        also setup routing for the other routers we make.
+                    </p>
+
+                    <p class="desc">
+                        A good pattern is to define routes on the global app or a router and pass control to another
+                        router that has its own config.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var express = require('express');
+// this is the entire app which can do routing too
+var app = express();
+var todosRouter = express.Router();
+
+// register a GET on '/' which would be the root of the route
+// which is actuall '/todo' because the app regiserted the todosRouter
+// on any request for '/todo'
+todosRouter.get('/', function(req, res) {
+  res.json(todos);
+});
+
+app.use('/todos', todosRouter);
+</code></pre>
+                </div>
+            </section>
+
+            <section id="testing">
+                <div class="header">
+                    <h2 class="title">Testing</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        Testing is simple in node. Unit tests are very similar to how you would test in the browser
+                        minus the DOM. Integration testing is where we start testing the actual api and what it does
+                        when we hit the routes.
+                    </p>
+
+                    <p class="desc">
+                        A good practice is to export the app before starting in so our test can inspect it
+                        without having to start it. And so our test can start the server if it chooses with other
+                        options on configurations.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">app.use(/*blah*/)
+app.get('/todos', function(){
+
+});
+
+// export the app for testing
+// then in another file, require the app and start the server
+module.exports = app;
+          </code></pre>
+
+                    <p class="desc">
+                        Strategies for actually testing our api are simple. Make request to it and make assertions about
+                        what the api should respond with. We can use a combinationof a testing framework like Jasmin or
+                        mocha, an assestion library if we don't have one, and something like <span
+                            class="code">supertest</span> to test our api.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var app = require('./app');
+var request = require('supertest');
+
+describe('todos', function() {
+
+  it('should GET all todos', function(done) {
+    request(app)
+      .get('/todos')
+      .set('Accept', 'application/json')
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .done(function(err, resp) {
+        expect(resp.id).toBeDefined();
+        done();
+      });
+  });
+});
+          </code></pre>
+                    <p class="desc">
+                        Now that we're talking about testing, its worth mentionig envarionment variables and how we can
+                        use them. There exists a <span class="code">process.env</span> object globally in Node. We can
+                        access our env vars on this object. A useful one is <span
+                            class="code">process.env.NODE_ENV</span>.
+                    </p>
+                </div>
+            </section>
+
+            <section id="scaffold">
+                <div class="header">
+                    <h2 class="title">Organization and config</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        Our api will consit of many different components to suppert the api, authentication, static
+                        serving, etc. But what makes up the api? The api is really just a collection of resources with
+                        models to define hwo the resources look, controllers to access to resources, and routes to let
+                        the controllers now how to run and to expose our api.
+                    </p>
+
+                    <p class="desc">
+                        A Model is just a blueprint of what our resource may look like, just like the blueprints we make
+                        before in JSON above. The controllers are the glue between the routes and the models. We've been
+                        using controllers and routes the whole time.
+                    </p>
+                    <p class="desc">
+                        MVC is a classic organization pattern, especially for servers. We're going to take a service
+                        orientated approach instead. So instead of grouping or code by type, we will group it by
+                        feature. So we'll bundle the resource's routes, controller, and model into one directory. Tests
+                        too.
+                    </p>
+
+                    <ul>
+                        <li>config/</li>
+                        <li>
+                            api/
+                            <ul>
+                                <li>
+                                    todos/
+                                    <ul>
+                                        <li>todoModel.js</li>
+                                        <li>todoController.js</li>
+                                        <li>todoRoutes.js</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+                        <li>utils/</li>
+                        <li>index.js/</li>
+                    </ul>
+
+                    <p class="desc">
+                        We can use <span class="code">process.env.NODE_ENV</span> the variable to tell our application
+                        what envarionment its running in.<span class="code">testing, development, or production</span>
+                        or whatever else. These are the common ones. So depending on the env, we can change things in
+                        our app like DB urls or toggle logging. We can also set and reference other env vars. Instead of
+                        searching everywhere for these values to change, we can and should create a central location for
+                        that config. Then depending on the <span class="code">NODE_ENV</span> we can require another
+                        config file and merge the two together so our app can use it.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var config = {
+  env: process.env.NODE_ENV || 'development',
+  logging: false,
+
+  secrets: {
+    githubToken: process.env.GITHUB_TOKEN,
+    jwtSecret: process.env.JWT_SECRET
+  }
+};
+// load up development.js ||
+// testing.js ||
+// production.js
+// all which have they're own configs that may change and add values
+
+var envConfig = require('./' + config.env);
+
+// merge the two objects and export it so our app can use it
+module.exports = _.assign(config, envConfig || {});
+          </code></pre>
+
+                    <p class="desc">
+                        For our blog application, we can start thinking about what resources we would need to make and
+                        start planning out the routes for that so we can start organizing it. So for resources, we'll be
+                        using <span class="code">users, posts, categories</span> for our resources. So knowing what we
+                        know about <span class="code">REST</span> and api design so far, we know that we will be
+                        creating <span class="code">CRUD</span> routes for these resources and using <span
+                            class="code">middleware & routers</span> to tweak and configure them. We'll model the
+                        resources later, but now that we know what resources we have, we can get started building out
+                        the skeleton files.
+                    </p>
+                </div>
+            </section>
+
+            <section id="mongo">
+                <div class="header">
+                    <h2 class="title">Mongo</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        Mongo is a NoSql document store. We don't have to model our data and can just throw json in it
+                        and ask for it later. We need a way to persist our api data, so we'll use mongo for that. Its
+                        simple to setup and use. Its not the BEST for every situation, but for for the sake of this
+                        course its perfect.
+                    </p>
+
+                    <p class="desc">
+                        If you have mongo installed, then you can type <span class="code">mongod</span> in a terminal
+                        window to start the database on a local server. Mongo ships with a repl the we can use to access
+                        the database. With mongo still running, open another terminal window and type <span
+                            class="code">mongo</span> to start the repl. It will connect to the test database by default
+                        which is expected. We can now use JS to run queries agains this database. Lets create our first
+                        collection. A collection is a like a table. It is a group of data that is modeled the sameish.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-bash">use nameOfYourDb
+
+db.createCollection('todos')
+
+db.todos.insert({content: 'clean room', completed: false});
+
+db.todos.find()
+          </code></pre>
+
+                    <p class="desc">
+                        By saying <span class="code">use</span> followed by the name of what db you want, mongo will
+                        switch to it. Run those commands one by one. So after we created the todos collection, we
+                        inserted a new todo document. We then asked to find all todos. We didn't have to tell mongo what
+                        are data was going to look like before we saved it.
+                    </p>
+
+                    <p class="desc">
+                        We won't be using mongo shell in our api, we need some JS drive to access mongo. There is a
+                        native driver that we could use that will work fine, but we'll use an ORM instead. <span
+                            class="code">Mongoose</span> is the most used mongo ORM and has a pretty good api. Mongoose
+                        will abstract things away, add support for things like promises, allow us to model our data with
+                        shemas, allow us to establish relationshpips with our models, and so much more.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var mongoose = require('mongoose');
+
+// connecting to a database with mongoose is EZ
+// use the mongodb protocol and whatever name you want
+// if it does not find that databse it will create it.
+mongoose.connect('mongodb://localhost/nameOfTheDBYouWant');
+</code></pre>
+                </div>
+            </section>
+
+            <section id="modeling">
+                <div class="header">
+                    <h2 class="title">Data modeling</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        We can use schemas in mongoose to add some structure and validations to our data. Mongo does not
+                        need schemas though. We also need some sort of relationships with our data, users creating posts
+                        and posts having categoires and beloning to users. Mongoose makes this simple. Here's and
+                        example of modeling some todo resource.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var mongoose = require('mongoose');
+
+// first make a new schema for our model
+// this is just the blueprint and how we tell mongoose to
+// handle our data. Mongo doesn't care.
+var TodoSchema = new mongoose.Schema({
+  // we define a property for this model object
+  // then what type it is, in this case, the
+  // completed property will has to be a Boolean
+  completed: Boolean
+
+  // we can add validations too
+  // just use an object literal here instead
+  // just be sure to have a type property on that object
+  // to tell mongoose what type this property will be
+  content: {
+    type: String, // will be a string
+    required: true, // will not create a todo without this content property
+  }
+});
+// no matter what we pass in as a name for the model,
+// mongoose will lowercase it and pluralize it for the collection.
+// so below the name for the model is 'Todo', mongoose will
+// convert that to 'todos' in the databse.
+// TodoModel is the model we'll use in node to CRUD so
+// it makes sense to export this;
+var TodoModel = mongoose.model('Todo', TodoSchema);
+module.export = TodoModel;
+          </code></pre>
+
+                    <p class="desc">
+                        Above is a small example of a schema with mongoose, but those are the basics. Here is a tour of
+                        all the other types we can use on the schema.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">
+var DogSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    //enforce that no two dogs can have the same name
+    unique: true
+  },
+
+  whenAdopted: Date,
+
+  hasShots: Boolean,
+
+  collarCode: Buffer,
+
+  age: {
+    type: Number,
+    // setup min and mx validations
+    min: 0,
+    max: 30
+  },
+
+  // toys is an array and can store many types of things really
+  // we can choose to model the things it stores or not. It can
+  // can also store other schemas :). We can put any of the above types
+  // or leave it blank
+  toys: [],
+
+  // nested objects work too
+  location: {
+    state: String,
+    city: String,
+    zip: Number
+  },
+
+  // we have a relationship here. A dog belongs to an owner.
+  // we can store the owners id here on the owner field. ObjectId are
+  // ids in mongoose. the ref key is telling mongoose what model that
+  // id belongs too. Helpful for when we ask the dog who its owner is
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'owner',
+    required: true
+  }
+});
+          </code></pre>
+
+                    <p class="desc">
+                        Now that we know a little bit about creating schemas with mongoose lets model our data for our
+                        blog api. We'll use json again as a blueprint.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-json">{
+  "users": {
+    "username": "node master"
+  },
+
+  "posts": {
+    "title": "What's new in Angular 4",
+    "text": "This is my short blog post about angular 4 :(",
+    "author": "ObjectId('55b0593cbee0e5961b4a7c4a')",
+    "categoires": [
+      "ObjectId('55b0593cbee0e5961b4a7c4a')",
+      "ObjectId('55b0593cbee0e5961b4a7c4a')",
+      "ObjectId('55b0593cbee0e5961b4a7c4a')"
+    ]
+  },
+
+  "categories": {
+    "name": "I'm a unique category"
+  }
+}
+          </code></pre>
+
+                    <p class="desc">
+                        Look at the actuall values of the json above to infer what type the properties are when creating
+                        your schemas.
+                    </p>
+                </div>
+            </section>
+
+            <section id="query">
+                <div class="header">
+                    <h2 class="title">Query</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        Mongo has a sophisticated query syntax that is full of options. Too many to list here. Using a
+                        mongoose model, we have a few ways to ask mongo about what data we want.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">Model.find({}, function(err, documents) {
+  if (err) {
+    next(err);
+  } else {
+    res.json(documents);
+  }
+});
+          </code></pre>
+
+                    <p class="desc">
+                        Above is a basic example of how we can query mongo for a specific model. Using the <span
+                            class="code">.find()</span> method, we can pass in a query object to specify what we're
+                        looking for. The object is empty so we want all instances of the collection. The second argument
+                        is a node style callback with either an error or the documents. Most queries on mongoose return
+                        a promise as well. Look here at the <a href="http://mongoosejs.com/docs/api.html">mongoose
+                            docs</a>
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">Model.findById('57490284328430', function(err, doc) {
+  if (err) {
+    next(err);
+  } else {
+    res.json(doc);
+  }
+});
+          </code></pre>
+
+                    <p class="desc">
+                        Above is a strategy we would use to to find one document from a collection given the id of the
+                        document. Helpful for those PUT/DELETE/GET one routes.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">// few ways to create a new document
+
+  var dog = new Dog({
+    name: 'Bingo'
+  });
+
+  dog.save(function(err, savedDog) {
+    if (err) {
+      next(err)
+    } else {
+      res.json(savedDog);
+    }
+  });
+  /////////////////////
+
+  Dog.create({name: 'Bingo'}, function(err, savedDog) {
+
+  })
+  //////////////////////
+
+  var dog = new Dog();
+
+  dog.name = 'Bingo';
+
+  dog.save(function(err, savedDog) {
+
+  });
+          </code></pre>
+
+                    <p class="desc">
+                        Above is 3 ways to create a new document for a given collection. Basically we have to create a
+                        new instance of the model, add the properties to it, then call <span
+                            class="code">.save()</span>. The <span class="code">.create()</span> method does this
+                        internally.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">Model.findByIdAndUpdate('28393928392', {name: 'new name'}, function(err, updatedDoc){
+  if (err) {
+    next(err)
+  } else {
+    res.json(updatedDoc);
+  }
+});
+          </code></pre>
+
+                    <p class="desc">
+                        Above is an example of how we can update a document given its id. Notice that most of the
+                        operations we want to do with mongoose look very similar. There are advanced uses and features
+                        as well. Along with performing methods on the model, we can also use the actuall document to do
+                        things. Operations on the document are atomic.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">Model.findOne({name: 'Jan'}, function(err, doc) {
+  doc.remove(function(err, removedDoc) {
+    // just deleted the document from the DB
+  });
+})
+          </code></pre>
+
+                    <p class="desc">
+                        This is possible because the actual documents returned from mongo are not just objects but
+                        instances of a collection and have specific properties and methods that allow us to operate on
+                        it and have it write back to the DB.
+                    </p>
+
+                    <p class="desc">
+                        Monog is no NoSql DB so we don't have join tables, but we need a way of seeing relational data.
+                        The solution for that is call <span class="code">population</span>. You can thinkof it as a join
+                        table at call time.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var DogSchema = new mongoose.Schema({
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'person'
+  },
+  name: String
+});
+
+var PersonSchema = new mongoose.Schema({
+  name: String
+});
+
+var Dog = mongoose.model('dog', DogSchema);
+var Person = mongoose.model('person', PersonSchema);
+
+// find all dogs and populate their owners
+// this will grab the ids on the owners field
+// and go to the ref, which is the person model
+// and grab the person doc with the matching id
+// and place the object on the owners field
+var promise = Dog.find({})
+  .populate('owner')
+  .exec();
+
+  promise.then(function(dogs) {
+
+  }, function(err) {
+
+  });
+          </code></pre>
+
+                    <p class="desc">
+                        There is so much to do and so many ways to do it with mongoose and mongo. Its another course on
+                        its own. This should be enough to get you started with our basic needs for our api
+                    </p>
+                </div>
+            </section>
+
+            <section id="auth">
+                <div class="header">
+                    <h2 class="title">Auth</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        There are many ways to protect our api. We'll be using <span class="code">json web tokens</span>
+                        (<span class="code">JWT</span>). <a href="http://jwt.io/">JWT</a> is an open standard that is
+                        heavily used. Because we're using a token approach, we don't need to keep track of who is signed
+                        in with a session store or have cookies. The JWT will be sent on every request because REST is
+                        stateless and we know not of the previous request. The token has to be stored on the client that
+                        is requesting resources
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">var user = {_id: '2873273237328378273'};
+
+// send token back to client on signup/signin
+var token = jwt.sign(user, 'shhhh, its a secret');
+
+//...
+// later on an incoming request, we will decode the token
+// to see who the user is. The token is probably on the
+// authorization header. This will throw an error if the token
+// is not a valid JWT and instead is a random string.
+var user = jwt.veryify(req.headers.authorization, 'shhhh, its a secret');
+
+// proceed to look user up to see if they exist in our system
+User.findById(user._id, function(){});
+          </code></pre>
+
+                    <p class="desc">
+                        So the process goes as follows. A user signs up to access protected resources on our api,
+                        (username && password). On success, we create a new user in our DB. We use the new user's id to
+                        create a JWT. We then send that JWT back to the user on the response of signup so that they can
+                        save it and send it back on every request to a protected resource. So not only do we get
+                        authentication, we also get identification with a JWT because we can reverse the token to be its
+                        original object and get the user id.
+                    </p>
+
+                    <p class="desc">
+                        With JWT as the method we will use to grant access to our protected resources, we still need a
+                        way to actually create users other than a simple POST request to the users resource. We already
+                        have a username field that is unique, lets add a required password field as well to help
+                        identify who a user may be when they signin. There are numerous problems around storing original
+                        plain text passwords in our database, legal, technical, and moral. So instead, we will store a
+                        hashed version of a user's password. <strong>Note</strong> that sending plain text passwords
+                        over HTTP is not the safe either, should be using HTTPS for that.
+                    </p>
+
+                    <p class="desc">
+                        Unlike the enctryption on a JWT, we can't undo a hash. In order to check to see if a given
+                        password matches a saved hashed password, like on signin, we just hash the given password and
+                        see if it matches the saved hashed one. Using the same hashing function and same password, we
+                        will get the same hash as we did on signup. There are further methods we could use to prevent
+                        attacks on our api like creating unique salts for each user and storing the salt on the user. To
+                        help prevent rainbow attacks.
+                    </p>
+
+                    <p class="desc">
+                        There are so many ways to do this password process with express + mongo. Mongoose allows us to
+                        teach our Models and Documents new tricks by adding functions to them.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">// you can think of 'methods' as prototypes. Any method we define here will be available on instances of Dog.
+DogSchema.methods.bark = function(){
+          // this === the dog document
+};
+
+// You can think of statics as static methods on a class/constructor
+// and they will belong to the Dog itself and not an instance of Dog.
+// like how Array.isArray() is a static method of the Array class
+DogSchema.statics.findByOwner = function() {
+
+};
+          </code></pre>
+                    <p class="desc">
+                        Mongoose, like express, has support for middleware. Middleware is perfect for validating,
+                        changing, notifying, etc. We'll use middleware to hash our passwords before a user is created.
+                        Middleware will attach to life cycle events around our documents like before save, before
+                        validations, after save, etc.
+                    </p>
+
+                    <pre class="prettyprint"><code class="lang-js">DogSchema.post('save', function(next){
+  var doggy = this;
+  // socket some websocket library in this case
+  socket.emit('new:doggy', doggy);
+  next();
+});
+
+// runs before a document is validated
+DogSchema.pre('validate', function(next) {
+
+});
+          </code></pre>
+                </div>
+            </section>
+
+            <section id="protect">
+                <div class="header">
+                    <h2 class="title">Protect the routes</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        Now that we have a nice flow for auth, we now need to make sure we are protecting our resources.
+                        Middleware, again, is perfect for the job. With the combination of app level, router level, and
+                        route level middleware, we have so much controll on how we protect things.
+                    </p>
+
+                    <p class="desc">
+                        Our blog is a public blog and we want people to be able to read posts without having to signup.
+                        We also want readers to be able to see the users/authors on the site and see what posts they
+                        have created. So not everything will have to be protected, where as things like creating and
+                        updating posts should be protected by a user.
+                    </p>
+
+                    <p class="desc">
+                        Using middleware to verify the token is great, but we could also use middleware to make sure the
+                        user object is fresh by time the request hits the controllers. Because our tokens our just the
+                        user's id, we want the full user object.
+                    </p>
+                </div>
+            </section>
+
+            <section id="deployment">
+                <div class="header">
+                    <h2 class="title">Deployment</h2>
+                </div>
+
+                <div class="content">
+                    <p class="desc">
+                        Deploying with node is relatively simple. All majors platforms support it these days and adhere
+                        to conventions to smooth the process even more. Some things to consider when deploying:
+                    </p>
+
+                    <ul>
+                        <li>Use envs for secrets, dont't check them into source control</li>
+                        <li>Make sure you are error handling</li>
+                        <li>Make sure all your dependencies are being installed</li>
+                        <li>If you're going to have your platform build for you, make sure it has access to all your
+                            build tools</li>
+                        <li>You can freeze node modules by using npm shrinkwrap</li>
+
+                        <li>Don't hard code things like dev urls, db urls, ports, etc</li>
+                    </ul>
+                </div>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>
